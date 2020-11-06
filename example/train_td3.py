@@ -34,8 +34,6 @@ parser.add_argument('--log', type=str, default='garbage',
                     help='Directory name of log.')
 parser.add_argument('--env_name', type=str,
                     default='Pendulum-v0', help='Name of environment.')
-parser.add_argument('--c2d', action='store_true',
-                    default=False, help='If True, action is discretized.')
 parser.add_argument('--record', action='store_true',
                     default=False, help='If True, movie is saved.')
 parser.add_argument('--seed', type=int, default=256)
@@ -57,13 +55,12 @@ parser.add_argument('--pol_lr', type=float, default=1e-4,
                     help='Policy learning rate')
 parser.add_argument('--qf_lr', type=float, default=3e-4,
                     help='Q function learning rate')
-
-parser.add_argument('--ent_alpha', type=float, default=1,
-                    help='Entropy coefficient.')
 parser.add_argument('--tau', type=float, default=5e-3,
                     help='Coefficient of target function.')
 parser.add_argument('--gamma', type=float, default=0.99,
                     help='Discount factor.')
+parser.add_argument('--policy_update_freq', type=int, default=1,
+                    help='Steps between policy update.')
 args = parser.parse_args()
 
 if not os.path.exists(args.log):
@@ -117,15 +114,12 @@ targ_qf2 = DeterministicSAVfunc(observation_space, action_space, targ_qf_net2)
 qfs = [qf1, qf2]
 targ_qfs = [targ_qf1, targ_qf2]
 
-log_alpha = nn.Parameter(torch.zeros((), device=device))
-
 sampler = EpiSampler(env, pol, args.num_parallel, seed=args.seed)
 
 optim_pol = torch.optim.Adam(pol_net.parameters(), args.pol_lr)
 optim_qf1 = torch.optim.Adam(qf_net1.parameters(), args.qf_lr)
 optim_qf2 = torch.optim.Adam(qf_net2.parameters(), args.qf_lr)
 optim_qfs = [optim_qf1, optim_qf2]
-optim_alpha = torch.optim.Adam([log_alpha], args.pol_lr)
 
 off_traj = Traj(args.max_steps_off, traj_device='cpu')
 
@@ -133,12 +127,18 @@ total_epi = 0
 total_step = 0
 max_rew = -1e6
 
+update_step = 0
+
 while args.max_epis > total_epi:
     with measure('sample'):
         epis = sampler.sample(pol, max_steps=args.max_steps_per_iter)
 
-        for epi in epis:
-            epi['rews'] *= 0.1
+        update_step += 1
+        if(update_step==args.policy_update_freq):
+            is_update = True
+            update_step = 0
+        else:
+            is_update = False
     with measure('train'):
         on_traj = Traj(traj_device='cpu')
         on_traj.add_epis(epis)
@@ -159,7 +159,7 @@ while args.max_epis > total_epi:
             optim_pol, optim_qfs,
             step, args.batch_size,
             args.tau, args.gamma,
-            pol_update=True, 
+            pol_update=is_update, 
             log_enable=True,
         )
 
