@@ -711,3 +711,34 @@ def shannon_cross_entropy(student_pol, teacher_pol, batch):
         _, _, t_params = teacher_pol(obs, h_masks=h_masks)
     cross_entropy_loss = s_pd.kl_pq(t_params, s_params) - s_pd.ent(t_params)
     return torch.mean(cross_entropy_loss)
+
+######### add codes for TD3 #########
+
+def target_policy_smoothing_func(batch_action):
+    """Add noises to actions for target policy smoothing."""
+    noise = torch.clamp(0.2 * torch.randn_like(batch_action), -0.5, 0.5)
+    
+    return torch.clamp(batch_action + noise, -1, 1)
+
+def td3(qfs, targ_qfs, targ_pol, batch, gamma, continuous=True, deterministic=True, sampling=1):
+
+    obs = batch['obs']
+    acs = batch['acs']
+    rews = batch['rews']
+    next_obs = batch['next_obs']
+    dones = batch['dones']
+    targ_pol.reset()
+    _, _, pd_params = targ_pol(next_obs)
+    #next_acs, _, pd_params = targ_pol(next_obs)
+    pd = targ_pol.pd
+    next_acs = pd.sample(pd_params, torch.Size([sampling]))
+    #next_acs = torch.from_numpy(next_acs.astype(np.float32)).clone()
+    next_obs = next_obs.expand([sampling] + list(next_obs.size()))
+    next_qs = [qf(next_obs, target_policy_smoothing_func(next_acs))[0] for qf in qfs]
+    next_q = torch.min(*next_qs)
+    q_targ = rews + gamma * next_q * (1 - dones)
+    q_targ = q_targ.detach()
+    qs = [qf(obs, acs)[0] for qf in qfs]
+    qf_losses = [0.5 * torch.mean((q - q_targ)**2) for q in qs]
+
+    return qf_losses

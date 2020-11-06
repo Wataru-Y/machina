@@ -16,6 +16,7 @@ def train(traj,
           epoch, batch_size,  # optimization hypers
           tau, gamma, sampling, reparam=True,
           log_enable=True,
+          max_grad_norm=0.5,
           ):
     """
     Train function for soft actor critic.
@@ -69,11 +70,13 @@ def train(traj,
 
         optim_pol.zero_grad()
         pol_loss.backward()
+        torch.nn.utils.clip_grad_norm_(pol.parameters(), max_grad_norm)
         optim_pol.step()
 
-        for optim_qf, qf_loss in zip(optim_qfs, qf_losses):
+        for qf, optim_qf, qf_loss in zip(qfs, optim_qfs, qf_losses):
             optim_qf.zero_grad()
             qf_loss.backward()
+            torch.nn.utils.clip_grad_norm_(qf.parameters(), max_grad_norm)
             optim_qf.step()
 
         optim_alpha.zero_grad()
