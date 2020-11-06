@@ -133,6 +133,9 @@ while args.max_epis > total_epi:
     with measure('sample'):
         epis = sampler.sample(pol, max_steps=args.max_steps_per_iter)
 
+        #for epi in epis:
+        #    epi['rews'] *= 0.1
+        
         update_step += 1
         if(update_step==args.policy_update_freq):
             is_update = True

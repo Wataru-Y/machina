@@ -26,7 +26,7 @@ def train(traj,
         for qf, optim_qf, qf_loss in zip(qfs, optim_qfs, qf_losses):
             optim_qf.zero_grad()
             qf_loss.backward()
-            #torch.nn.utils.clip_grad_norm_(qf.parameters(), max_grad_norm)
+            torch.nn.utils.clip_grad_norm_(qf.parameters(), max_grad_norm)
             optim_qf.step()
         
         _qf_losses.append((sum(qf_losses) / len(qf_losses)).detach().cpu().numpy())
@@ -35,7 +35,7 @@ def train(traj,
             pol_loss = lf.ag(pol, qfs[0], batch, no_noise=True)
             optim_pol.zero_grad()
             pol_loss.backward()
-            #torch.nn.utils.clip_grad_norm_(pol.parameters(), max_grad_norm)
+            torch.nn.utils.clip_grad_norm_(pol.parameters(), max_grad_norm)
             optim_pol.step()
     
             for p, targ_p in zip(pol.parameters(), targ_pol.parameters()):
