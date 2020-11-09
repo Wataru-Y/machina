@@ -729,13 +729,10 @@ def td3(qfs, targ_qfs, targ_pol, batch, gamma, continuous=True, deterministic=Tr
     dones = batch['dones']
     targ_pol.reset()
     _, _, pd_params = targ_pol(next_obs)
-    print(acs[0])
-    print(target_policy_smoothing_func(acs)[0])
     
-    #next_acs, _, pd_params = targ_pol(next_obs)
     pd = targ_pol.pd
     next_acs = pd.sample(pd_params, torch.Size([sampling]))
-    #next_acs = torch.from_numpy(next_acs.astype(np.float32)).clone()
+
     next_obs = next_obs.expand([sampling] + list(next_obs.size()))
     next_qs = [qf(next_obs, target_policy_smoothing_func(next_acs))[0] for qf in qfs]
     next_q = torch.min(*next_qs)
