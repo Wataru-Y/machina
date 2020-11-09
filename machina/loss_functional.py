@@ -714,13 +714,13 @@ def shannon_cross_entropy(student_pol, teacher_pol, batch):
 
 ######### add codes for TD3 #########
 
-def target_policy_smoothing_func(batch_action):
+def default_target_policy_smoothing_func(batch_action):
     """Add noises to actions for target policy smoothing."""
     noise = torch.clamp(0.2 * torch.randn_like(batch_action), -0.5, 0.5)
     
     return torch.clamp(batch_action + noise, -1, 1)
 
-def td3(qfs, targ_qfs, targ_pol, batch, gamma, continuous=True, deterministic=True, sampling=1):
+def td3(qfs, targ_qfs, targ_pol, batch, gamma, continuous=True, deterministic=True, sampling=1,target_policy_smoothing_func=default_target_policy_smoothing_func):
 
     obs = batch['obs']
     acs = batch['acs']
@@ -729,6 +729,9 @@ def td3(qfs, targ_qfs, targ_pol, batch, gamma, continuous=True, deterministic=Tr
     dones = batch['dones']
     targ_pol.reset()
     _, _, pd_params = targ_pol(next_obs)
+    print(acs[0])
+    print(target_policy_smoothing_func(acs)[0])
+    
     #next_acs, _, pd_params = targ_pol(next_obs)
     pd = targ_pol.pd
     next_acs = pd.sample(pd_params, torch.Size([sampling]))

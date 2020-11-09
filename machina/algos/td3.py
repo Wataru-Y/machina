@@ -13,6 +13,7 @@ def train(traj,
           pol_update=True, 
           log_enable=True,
           max_grad_norm=0.5,
+          target_policy_smoothing_func=None,
           ):
 
     pol_losses = []
@@ -21,7 +22,12 @@ def train(traj,
         logger.log("Optimizing...")
 
     for batch in traj.random_batch(batch_size, epoch):
-        qf_losses = lf.td3(qfs, targ_qfs, targ_pol, batch, gamma, continuous=True, deterministic=True, sampling=1)
+        
+        if(target_policy_smoothing_func is not None):
+            qf_losses = lf.td3(qfs, targ_qfs, targ_pol, batch, gamma, continuous=True, deterministic=True, sampling=1,target_policy_smoothing_func=target_policy_smoothing_func)
+        
+        else:
+            qf_losses = lf.td3(qfs, targ_qfs, targ_pol, batch, gamma, continuous=True, deterministic=True, sampling=1)
         
         for qf, optim_qf, qf_loss in zip(qfs, optim_qfs, qf_losses):
             optim_qf.zero_grad()
