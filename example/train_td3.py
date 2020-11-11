@@ -1,5 +1,5 @@
 """
-An example of Soft Actor Critic.
+An example of TD3.
 """
 
 import argparse
@@ -97,7 +97,8 @@ pol = DeterministicActionNoisePol(observation_space, action_space, pol_net,noise
 targ_pol_net = PolNet(observation_space, action_space, deterministic=True)
 targ_pol_net.load_state_dict(pol_net.state_dict())
 targ_noise = OUActionNoise(action_space)
-targ_pol = DeterministicActionNoisePol(observation_space, action_space, targ_pol_net,targ_noise)
+targ_pol = DeterministicActionNoisePol(observation_space, action_space, 
+                                    targ_pol_net,targ_noise)
 
 qf_net1 = QNet(observation_space, action_space)
 qf1 = DeterministicSAVfunc(observation_space, action_space, qf_net1)
@@ -132,16 +133,15 @@ update_step = 0
 while args.max_epis > total_epi:
     with measure('sample'):
         epis = sampler.sample(pol, max_steps=args.max_steps_per_iter)
-
-        #for epi in epis:
-        #    epi['rews'] *= 0.1
         
         update_step += 1
+
         if(update_step==args.policy_update_freq):
             is_update = True
             update_step = 0
         else:
             is_update = False
+
     with measure('train'):
         on_traj = Traj(traj_device='cpu')
         on_traj.add_epis(epis)

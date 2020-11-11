@@ -24,7 +24,8 @@ def train(traj,
     for batch in traj.random_batch(batch_size, epoch):
         
         if(target_policy_smoothing_func is not None):
-            qf_losses = lf.td3(qfs, targ_qfs, targ_pol, batch, gamma, continuous=True, deterministic=True, sampling=1,target_policy_smoothing_func=target_policy_smoothing_func)
+            qf_losses = lf.td3(qfs, targ_qfs, targ_pol, batch, gamma, continuous=True, deterministic=True, 
+                        sampling=1,target_policy_smoothing_func=target_policy_smoothing_func)
         
         else:
             qf_losses = lf.td3(qfs, targ_qfs, targ_pol, batch, gamma, continuous=True, deterministic=True, sampling=1)
@@ -32,7 +33,8 @@ def train(traj,
         for qf, optim_qf, qf_loss in zip(qfs, optim_qfs, qf_losses):
             optim_qf.zero_grad()
             qf_loss.backward()
-            torch.nn.utils.clip_grad_norm_(qf.parameters(), max_grad_norm)
+            if max_grad_norm is not None:
+                torch.nn.utils.clip_grad_norm_(qf.parameters(), max_grad_norm)
             optim_qf.step()
         
         _qf_losses.append((sum(qf_losses) / len(qf_losses)).detach().cpu().numpy())
@@ -41,7 +43,8 @@ def train(traj,
             pol_loss = lf.ag(pol, qfs[0], batch, no_noise=True)
             optim_pol.zero_grad()
             pol_loss.backward()
-            torch.nn.utils.clip_grad_norm_(pol.parameters(), max_grad_norm)
+            if max_grad_norm is not None:
+                torch.nn.utils.clip_grad_norm_(pol.parameters(), max_grad_norm)
             optim_pol.step()
     
             for p, targ_p in zip(pol.parameters(), targ_pol.parameters()):

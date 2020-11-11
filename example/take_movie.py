@@ -75,8 +75,8 @@ action_space = env.action_space
 
 if args.ddpg:
     pol_net = PolNet(observation_space, action_space,
-                     args.h1, args.h2, deterministic=True)
-    noise = OUActionNoise(action_space.shape)
+                     args.pol_h1, args.pol_h2, deterministic=True)
+    noise = OUActionNoise(action_space)
     pol = DeterministicActionNoisePol(
         observation_space, action_space, pol_net, noise)
 else:

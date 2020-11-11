@@ -720,7 +720,8 @@ def default_target_policy_smoothing_func(batch_action):
     
     return torch.clamp(batch_action + noise, -1, 1)
 
-def td3(qfs, targ_qfs, targ_pol, batch, gamma, continuous=True, deterministic=True, sampling=1,target_policy_smoothing_func=default_target_policy_smoothing_func):
+def td3(qfs, targ_qfs, targ_pol, batch, gamma, continuous=True, deterministic=True, sampling=1,
+        target_policy_smoothing_func=default_target_policy_smoothing_func):
 
     obs = batch['obs']
     acs = batch['acs']
@@ -734,10 +735,11 @@ def td3(qfs, targ_qfs, targ_pol, batch, gamma, continuous=True, deterministic=Tr
     next_acs = pd.sample(pd_params, torch.Size([sampling]))
 
     next_obs = next_obs.expand([sampling] + list(next_obs.size()))
-    next_qs = [qf(next_obs, target_policy_smoothing_func(next_acs))[0] for qf in qfs]
-    next_q = torch.min(*next_qs)
-    q_targ = rews + gamma * next_q * (1 - dones)
-    q_targ = q_targ.detach()
+    with torch.no_grad():
+        next_qs = [qf(next_obs, target_policy_smoothing_func(next_acs))[0] for qf in targ_qfs]
+        next_q = torch.min(*next_qs)
+        q_targ = rews + gamma * next_q * (1 - dones)
+        q_targ = q_targ.detach()
     qs = [qf(obs, acs)[0] for qf in qfs]
     qf_losses = [0.5 * torch.mean((q - q_targ)**2) for q in qs]
 
